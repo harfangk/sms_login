@@ -5,7 +5,7 @@ module SmsLogin
       phone_number = params[:user][:phone_number]
       success = SmsLogin.process_phone_number(phone_number, url)
       if success
-        render plain: "SMS로 로그인용 링크가 발송되었습니다. 확인해주세요."
+        render plain: "SMS로 로그인용 링크가 발송되었습니다. 확인해주세요. \n #{success}"
       else
         render plain: "입력해주신 전화번호를 찾을 수 없습니다."
       end
