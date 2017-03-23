@@ -8,6 +8,7 @@ SMS로 로그인 토큰을 포함한 링크를 전송해서 비밀번호 없이 
 `Gemfile`에 `gem 'sms_login', github: 'harfangk/sms_login'`를 추가해주세요.
 
 `User` 모델에 `phone` 필드가 존재해야 합니다. 현재 동작을 위해서는 다음 세 요소가 필요합니다.
+
 * 세션 컨트롤러 
 * 루트 
 * User 모델 토큰 관련 마이그레이션 
@@ -54,7 +55,8 @@ Rails.application.routes.draw do
 end
 ```
 
-접속하는 폼은 다음과 같이 만들면 됩니다.
+핸드폰 번호를 제출하는 폼은 이후 `sms_login_sessions_lookup_path`에 핸드폰 번호를 `[:user][:phone_number]`
+파라미터에 담아서 제출하면 되며, 다음과 같이 만들면 됩니다.
 
 ```ruby
 ...
@@ -66,16 +68,3 @@ end
 <% end %>
 ...
 ```
-
-# 주의
-제너레이터가 작동할 때까지는 위에 명시한 대로 관련 파일을 직접 작성해주셔야 합니다.
-토큰 인증 용으로 사용하는 필드는 자동 생성된 마이그레이션 파일에서 만들어 줍니다. 
-다음 명령어를 사용해서 설치하시면 됩니다.
-
-```ruby
-bin/rails generate sms_login:install
-bin/rails db:migrate
-```
-
-이후 `sms_login_sessions_lookup_path`에 핸드폰 번호를 `[:user][:phone_number]`
-파라미터에 담아서 제출하는 폼을 통해서 로그인하시면 됩니다. 
