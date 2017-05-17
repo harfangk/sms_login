@@ -11,11 +11,11 @@ module SmsLogin
     end
 
     def self.find_user_with_phone_number(phone_number)
-      User.find_by(phone: phone_number)
+      User.find_or_create_by(phone: phone_number)
     end
 
     def self.respond_to_record(record, parsed_phone_number, root_url)
-      if record 
+      if record
         token = SmsLogin.new_token
         msg = sms_login_msg(token, root_url)
         record.update(sms_login_token: token, sms_login_token_created_at: Time.now.getgm)
@@ -30,7 +30,7 @@ module SmsLogin
       "다음 링크를 클릭하시면 로그인할 수 있습니다: #{root_url}?sms_login_token=#{token}"
     end
 
-    def self.new_token(length=20) 
+    def self.new_token(length=20)
       rlength = (length * 3) / 4
       SecureRandom.urlsafe_base64(rlength).tr('lIO0', 'sxyz')
     end
