@@ -30,7 +30,7 @@ module SmsLogin
       "다음 링크를 클릭하시면 로그인할 수 있습니다: #{root_url}?sms_login_token=#{token}"
     end
 
-    def self.handle_other_devices(record, parsed_phone_number, root_url)
+    def self.handle_other_devices(record, parsed_phone_number)
       login_code = new_login_code
       record.update(sms_login_code: login_code, sms_login_code_created_at: Time.now.getgm)
       msg = sms_login_code_msg(login_code)

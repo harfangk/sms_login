@@ -1,19 +1,21 @@
 module SmsLogin
   module SmsLoginHandler
-    def respond_to_cellphone_number
+    def send_sms_to_appropriate_user
       phone_number = params[:user][:phone_number]
       parsed_phone_number = SmsLogin.parse_phone_nunmber(phone_number)
       user = SmsLogin.find_user_with_phone_number(parsed_phone_number)
       unless user
-        return redirect_to(user_login_url, failure: "입력하신 전화번호를 찾을 수 없습니다.")
+        return redirect_to(user_login_url, failure: "입력하신 전화번호를 가진 사용자를 찾을 수 없습니다.")
       end
 
       if request.user_agent =~ /Mobi/
+        url = sms_login_sessions_token_sign_in_url
         SmsLogin.handle_mobile_devices(user, parsed_phone_number, url)
-        redirect_to sms_login_sessions_token_login_info_url
+        redirect_to sms_login_sessions_token_sign_in_info_url
       else
-        SmsLogin.handle_other_devices(user, parsed_phone_number, url)
-        redirect_to sms_login_sessions_code_login_form_url
+        SmsLogin.handle_other_devices(user, parsed_phone_number)
+        session[:phone] = parsed_phone_number
+        redirect_to sms_login_sessions_code_sign_in_form_url
       end
     end
 
@@ -50,6 +52,14 @@ module SmsLogin
       else
         session[:user_id] = nil
       end
+    end
+
+    def token_sign_in_info
+
+    end
+
+    def code_sign_in_form
+      @phone = session[:phone]
     end
 
     private 
