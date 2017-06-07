@@ -2,12 +2,6 @@ require 'securerandom'
 
 module SmsLogin
   class SmsLogin
-    def self.process_phone_number(input_phone_number, root_url)
-      parsed_phone_number = parse_phone_nunmber(input_phone_number)
-      record = find_user_with_phone_number(parsed_phone_number)
-      respond_to_record(record, parsed_phone_number, root_url)
-    end
-
     def self.parse_phone_nunmber(input_phone_number)
       input_phone_number.delete("^0-9")
     end
@@ -20,24 +14,11 @@ module SmsLogin
       User.find_or_create_by(phone: phone_number)
     end
 
-    def self.respond_to_record(record, parsed_phone_number, root_url)
-      unless record
-        return false
-      end
-
-      if request.user_agent =~ /Mobi/
-        handle_mobile_devices(record, parsed_phone_number, root_url)
-      else
-        handle_other_devices(record, parsed_phone_number, root_url)
-      end
-    end
-
     def self.handle_mobile_devices(record, parsed_phone_number, root_url)
       token = new_token
       record.update(sms_login_token: token, sms_login_token_created_at: Time.now.getgm)
       msg = sms_login_token_msg(token, root_url)
       SmsSender.send_message(parsed_phone_number, msg)
-      msg
     end
 
     def self.new_token(length=20)
@@ -54,7 +35,6 @@ module SmsLogin
       record.update(sms_login_code: login_code, sms_login_code_created_at: Time.now.getgm)
       msg = sms_login_code_msg(login_code)
       SmsSender.send_message(parsed_phone_number, msg)
-      msg
     end
 
     def self.new_login_code(length=3)
