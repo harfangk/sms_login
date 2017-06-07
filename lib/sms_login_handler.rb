@@ -24,6 +24,19 @@ module SmsLogin
       end
     end
 
+    def sign_in_with_sms_login_code
+      user = User.find_by(sms_login_code: params[:sms_login_code])
+      if user && (user.sms_login_code_created_at - Time.now.getgm) < (60 * 2)
+        if defined?(Devise)
+          replace_devise_credential_with(user)
+        else
+          session[:user_id] = user.id
+        end
+      else
+        false
+      end
+    end
+
     def sign_out_from_sms_login
       if defined?(Devise)
         request.env['warden'].logout
