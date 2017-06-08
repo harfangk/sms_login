@@ -50,7 +50,7 @@ module SmsLogin
     end
   end
 
-  def self.parse_phone_number(input_phone_number)
+  def parse_phone_number(input_phone_number)
     input_phone_number.delete("^0-9")
   end
 
