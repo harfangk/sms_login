@@ -1,26 +1,24 @@
+require 'securerandom'
+
 module SmsLogin
   module SmsLoginHandler
-    def send_sms_to_appropriate_user
-      phone_number = params[:user][:phone_number]
-      parsed_phone_number = SmsLogin.parse_phone_nunmber(phone_number)
-      user = SmsLogin.find_user_with_phone_number(parsed_phone_number)
-      unless user
-        return redirect_to(user_login_url, failure: "입력하신 전화번호를 가진 사용자를 찾을 수 없습니다.")
-      end
-
+    def send_sms(user, phone_number)
       if request.user_agent =~ /Mobi/
-        url = sms_login_sessions_token_sign_in_url
-        SmsLogin.handle_mobile_devices(user, parsed_phone_number, url)
+        handle_mobile_devices(user, phone_number, sms_login_sessions_token_sign_in_url)
         redirect_to sms_login_sessions_token_sign_in_info_url
       else
-        SmsLogin.handle_other_devices(user, parsed_phone_number)
-        session[:phone] = parsed_phone_number
+        handle_other_devices(user, phone_number)
+        save_phone_number_in_session(phone_number)
         redirect_to sms_login_sessions_code_sign_in_form_url
       end
     end
 
-    def sign_in_with_sms_login_token
-      user = User.find_by(sms_login_token: params[:sms_login_token])
+    def save_phone_number_in_session(phone_number)
+      session[:phone_number] = phone_number
+    end
+
+    def sign_in_with_sms_login_token(token)
+      user = User.find_by(sms_login_token: token)
       if user && (user.sms_login_token_created_at - Time.now.getgm) < (60 * 5)
         if defined?(Devise)
           replace_devise_credential_with(user)
@@ -28,21 +26,20 @@ module SmsLogin
           session[:user_id] = user.id
         end
       else
-        return redurect_to(user_login_url, failure: "입력된 링크에 문제가 있습니다. 다시 시도해주세요.")
+        false
       end
     end
 
-    def sign_in_with_sms_login_code
-      user = User.find_by(sms_login_code: params[:sms_login_code], phone: params[:phone])
+    def sign_in_with_sms_login_code(code, phone_number)
+      user = User.find_by(sms_login_code: code, phone: phone_number)
       if user && (user.sms_login_code_created_at - Time.now.getgm) < (60 * 2)
         if defined?(Devise)
           replace_devise_credential_with(user)
         else
           session[:user_id] = user.id
         end
-        redirect_to root_url, success: "환영합니다."
       else
-        return redurect_to(user_login_url, failure: "입력된 코드에 문제가 있습니다. 다시 시도해주세요.")
+        false
       end
     end
 
@@ -54,12 +51,47 @@ module SmsLogin
       end
     end
 
-    def token_sign_in_info
-
+    def parse_phone_nunmber(input_phone_number)
+      input_phone_number.delete("^0-9")
     end
 
-    def code_sign_in_form
-      @phone = session[:phone]
+    def find_user_with_phone_number(phone_number)
+      if phone_number.empty?
+        return false
+      end
+
+      User.find_or_create_by(phone: phone_number)
+    end
+
+    def handle_mobile_devices(record, parsed_phone_number, root_url)
+      token = new_token
+      record.update(sms_login_token: token, sms_login_token_created_at: Time.now.getgm)
+      msg = sms_login_token_msg(token, root_url)
+      SmsSender.send_message(parsed_phone_number, msg)
+    end
+
+    def new_token(length=20)
+      rlength = (length * 3) / 4
+      SecureRandom.urlsafe_base64(rlength).tr('lIO0', 'sxyz')
+    end
+
+    def sms_login_token_msg(token, root_url)
+      "다음 링크를 클릭하시면 로그인할 수 있습니다: #{root_url}?sms_login_token=#{token}"
+    end
+
+    def handle_other_devices(record, parsed_phone_number)
+      login_code = new_login_code
+      record.update(sms_login_code: login_code, sms_login_code_created_at: Time.now.getgm)
+      msg = sms_login_code_msg(login_code)
+      SmsSender.send_message(parsed_phone_number, msg)
+    end
+
+    def new_login_code(length=3)
+      SecureRandom.hex(length)
+    end
+
+    def sms_login_code_msg(login_code)
+      "로그인 코드: #{login_code}"
     end
 
     private 
